@@ -46,10 +46,17 @@ extern "C" {
 #define FLAG_ALLOW_RESTORE_MODE (1 << 10)
 #define FLAG_NO_RESTORE      (1 << 11)
 #define FLAG_IGNORE_ERRORS   (1 << 12)
+#define FLAG_SRD             (1 << 13)
 
-#define RESTORE_VARIANT_CUSTOMER_ERASE     "Customer Erase Install (IPSW)"
-#define RESTORE_VARIANT_CUSTOMER_UPGRADE   "Customer Upgrade Install (IPSW)"
-#define RESTORE_VARIANT_MACOS_RECOVERY_OS  "macOS Customer"
+#define RESTORE_VARIANT_CUSTOMER_ERASE             "Customer Erase Install (IPSW)"
+#define RESTORE_VARIANT_CUSTOMER_UPGRADE           "Customer Upgrade Install (IPSW)"
+#define RESTORE_VARIANT_DEVELOPER_ERASE            "Developer Erase Install (IPSW)"
+#define RESTORE_VARIANT_DEVELOPER_UPGRADE          "Developer Upgrade Install (IPSW)"
+#define RESTORE_VARIANT_RESEARCH_ERASE             "Research Customer Erase Install (IPSW)"
+#define RESTORE_VARIANT_RESEARCH_UPGRADE           "Research Customer Upgrade Install (IPSW)"
+#define RESTORE_VARIANT_RESEARCH_DEVELOPER_ERASE   "Research Developer Erase Install (IPSW)"
+#define RESTORE_VARIANT_RESEARCH_DEVELOPER_UPGRADE "Research Developer Upgrade Install (IPSW)"
+#define RESTORE_VARIANT_MACOS_RECOVERY_OS          "macOS Customer"
 
 struct idevicerestore_client_t;
 

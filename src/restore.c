@@ -2956,6 +2956,8 @@ plist_t restore_get_build_identity(struct idevicerestore_client_t* client, uint8
 
 	if (is_recover_os)
 		variant = RESTORE_VARIANT_MACOS_RECOVERY_OS;
+	else if (client->flags & FLAG_SRD)
+		variant = (client->flags & FLAG_ERASE) ? RESTORE_VARIANT_RESEARCH_ERASE : RESTORE_VARIANT_RESEARCH_UPGRADE;
 	else if (client->flags & FLAG_ERASE)
 		variant = RESTORE_VARIANT_CUSTOMER_ERASE;
 	else
@@ -2965,6 +2967,16 @@ plist_t restore_get_build_identity(struct idevicerestore_client_t* client, uint8
 			client->build_manifest,
 			client->device->hardware_model,
 			variant);
+	if (build_identity == NULL) {
+		// Maybe a Developer/Beta IPSW?
+		if (client->flags & FLAG_SRD) {
+			variant = (client->flags & FLAG_ERASE) ? RESTORE_VARIANT_RESEARCH_DEVELOPER_ERASE : RESTORE_VARIANT_RESEARCH_DEVELOPER_UPGRADE;
+		} else {
+			variant = (client->flags & FLAG_ERASE) ? RESTORE_VARIANT_DEVELOPER_ERASE : RESTORE_VARIANT_DEVELOPER_UPGRADE;
+		}
+
+		build_identity = build_manifest_get_build_identity_for_model_with_variant(client->build_manifest, client->device->hardware_model, variant);
+	}
 
 	plist_t unique_id_node = plist_dict_get_item(client->build_manifest, "UniqueBuildID");
 	debug_plist(unique_id_node);

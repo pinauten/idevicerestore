@@ -87,6 +87,7 @@ static struct option longopts[] = {
 	{ "version",        no_argument,       NULL, 'v' },
 	{ "ipsw-info",      no_argument,       NULL, 'I' },
 	{ "ignore-errors",  no_argument,       NULL,  1  },
+	{ "research",       no_argument,       NULL, 'r' },
 	{ NULL, 0, NULL, 0 }
 };
 
@@ -140,6 +141,7 @@ static void usage(int argc, char* argv[], int err)
 	"  -P, --plain-progress  Print progress as plain step and progress\n" \
 	"  -R, --restore-mode    Allow restoring from Restore mode\n" \
 	"  -T, --ticket PATH     Use file at PATH to send as AP ticket\n" \
+	"  -r, --research        Restore a Security Research Device\n" \
 	"  --ignore-errors       Try to continue the restore process after certain\n" \
 	"                        errors (like a failed baseband update)\n" \
 	"                        WARNING: This might render the device unable to boot\n" \
@@ -822,16 +824,31 @@ int idevicerestore_start(struct idevicerestore_client_t* client)
 			// finally add manifest
 			plist_dict_set_item(build_identity, "Manifest", manifest);
 		}
-	} else if (client->flags & FLAG_ERASE) {
-		build_identity = build_manifest_get_build_identity_for_model_with_variant(client->build_manifest, client->device->hardware_model, RESTORE_VARIANT_CUSTOMER_ERASE);
+	} else if (client->flags & FLAG_SRD) {
+		// Special handling for Security Research Devices
+		uint8_t isErase = (client->flags & FLAG_ERASE) == FLAG_ERASE;
+
+		build_identity = build_manifest_get_build_identity_for_model_with_variant(client->build_manifest, client->device->hardware_model, isErase ? RESTORE_VARIANT_RESEARCH_ERASE : RESTORE_VARIANT_RESEARCH_UPGRADE);
 		if (build_identity == NULL) {
-			error("ERROR: Unable to find any build identities\n");
-			return -1;
+			// Maybe a Developer/Beta IPSW?
+			build_identity = build_manifest_get_build_identity_for_model_with_variant(client->build_manifest, client->device->hardware_model, isErase ? RESTORE_VARIANT_RESEARCH_DEVELOPER_ERASE : RESTORE_VARIANT_RESEARCH_DEVELOPER_UPGRADE);
+
+			if (build_identity == NULL) {
+				error("ERROR: Unable to find any build identities\n");
+				return -1;
+			}
 		}
 	} else {
-		build_identity = build_manifest_get_build_identity_for_model_with_variant(client->build_manifest, client->device->hardware_model, RESTORE_VARIANT_CUSTOMER_UPGRADE);
-		if (!build_identity) {
-			build_identity = build_manifest_get_build_identity_for_model(client->build_manifest, client->device->hardware_model);
+		uint8_t isErase = (client->flags & FLAG_ERASE) == FLAG_ERASE;
+
+		build_identity = build_manifest_get_build_identity_for_model_with_variant(client->build_manifest, client->device->hardware_model, isErase ? RESTORE_VARIANT_CUSTOMER_ERASE : RESTORE_VARIANT_CUSTOMER_UPGRADE);
+		if (build_identity == NULL) {
+			// Maybe a Developer/Beta IPSW?
+			build_identity = build_manifest_get_build_identity_for_model_with_variant(client->build_manifest, client->device->hardware_model, isErase ? RESTORE_VARIANT_DEVELOPER_ERASE : RESTORE_VARIANT_DEVELOPER_UPGRADE);
+			if (build_identity == NULL) {
+				error("ERROR: Unable to find any build identities\n");
+				return -1;
+			}
 		}
 	}
 
@@ -1603,7 +1620,7 @@ int main(int argc, char* argv[]) {
 		client->flags |= FLAG_INTERACTIVE;
 	}
 
-	while ((opt = getopt_long(argc, argv, "dhcesxtpli:u:nC:kyPRT:zv", longopts, &optindex)) > 0) {
+	while ((opt = getopt_long(argc, argv, "dhcesxtpli:u:nC:kyPRT:zvr", longopts, &optindex)) > 0) {
 		switch (opt) {
 		case 'h':
 			usage(argc, argv, 0);
@@ -1714,6 +1731,10 @@ int main(int argc, char* argv[]) {
 
 		case 1:
 			client->flags |= FLAG_IGNORE_ERRORS;
+			break;
+
+		case 'r':
+			client->flags |= FLAG_SRD;
 			break;
 
 		default:
